@@ -7,6 +7,9 @@ class Status:
 		self.table3 = table3
 		self.tables = [table0, table1, table2, table3]
 
+	def getTables(self):
+		return self.tables
+
 	def getTableValue(self, table, row, column):
 		return self.tables[table][row][column]
 

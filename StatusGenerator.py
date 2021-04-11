@@ -1,5 +1,5 @@
 
-class generator:
+class Generator:
 
 	def __init__(self):
 		self.moves = [
@@ -27,7 +27,7 @@ class generator:
 		self.homeboardPieces = []
 		#validar fin del juego
 		self.findHomeboardPieces()
-		self.findPasiveMoves()
+		return self.findPasiveMoves()
 		#self.findAggressiveMoves()
 
 	#Se encarga de buscar las fichas del homeboard del jugador en turno,
@@ -65,15 +65,17 @@ class generator:
 							for posibleAggressiveMove in posibleAggressiveMoves:
 								statuses.append(posibleAggressiveMove)
 
-		for status in statuses:
-			self.printStatus(status)
+		#for status in statuses:
+			#self.printStatus(status)
+		return statuses
+		
 		#self.printStatus(statuses[0])
 					#validar movimiento agresivos
 
 	#Valida si un movimiento pasivo es valido, tenindo en cuenta que este debe hacerse a una posicion no ocupada
 	#o en la cual, su trayecto no se vea obstaculizada por otra ficha
 	def isValidPassiveMove(self, status, board, row, column, rowOperation, columnOperation):
-		if abs(rowOperation) or abs(columnOperation) == 1:
+		if abs(rowOperation) == 1 or abs(columnOperation) == 1:
 			return status[board][row + rowOperation][column + columnOperation] == 0
 		else:
 			rowMultiplier = int(rowOperation / -2)
@@ -206,18 +208,6 @@ class generator:
 			else: #si la casilla esta ocupada por ficha del mismo jugador
 				return None #movimiento no valido
 
-			'''
-			
-			rowMultiplier = int(rowOperation / -2)
-			columnMultiplier = int(columnOperation / -2)
-			if status[board][row + (rowOperation + 1 * rowMultiplier)][column + (columnOperation + 1*columnMultiplier)] == 0:
-				if status[board][row + (rowOperation + 0 * rowMultiplier)][column + (columnOperation + 0*columnMultiplier)] == 0:
-					return True
-			else:
-				return False'''
-
-
-
 	def getOpossitePlayer(self, currentPlayer):
 		if currentPlayer == 1:
 			return 2
@@ -251,28 +241,5 @@ class generator:
 
 		#print(self.homeboardPieces)
 
-inicial =  [
-		[
-			[0,2,2,2],
-			[0,0,0,0],
-			[0,0,0,0],
-			[1,1,1,1],
-		], [
-			[2,2,2,2],
-			[0,0,0,0],
-			[1,0,0,0],
-			[0,1,1,1],
-		], [
-			[2,2,2,2],
-			[0,0,0,0],
-			[0,0,0,0],
-			[1,1,1,1],
-		], [
-			[2,2,2,2],
-			[0,0,0,0],
-			[0,0,0,0],
-			[1,1,1,1],
-		] ]
-generador = generator()
-generador.generateStatuses(inicial, 1)
+
 

@@ -40,6 +40,7 @@ class Node:
 	def getUtility(self):
 		return self.utility
 
+'''
 a = Node(1)
 
 b = Node(2)
@@ -60,6 +61,14 @@ f.setUtility(5)
 g.setUtility(4)
 
 tree = a
+
+def remover_nodo(node):
+	parentChildList = node.getParent().getChilds()
+	parentChildList.remove(node)
+
+print(a.getChilds())
+remover_nodo(c)
+print(a.getChilds())
 
 def recorrer_arbol(node):
 	childs = node.getChilds()
@@ -86,3 +95,4 @@ def recorrer_arbol(node):
 value, node = recorrer_arbol(a)
 print(value, node.getKey())
 
+'''
