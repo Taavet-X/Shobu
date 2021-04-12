@@ -11,7 +11,7 @@ class MainFrame:
         print("loading...")
         self.root = tk.Tk()
         self.root.title("Shobu")
-        
+        self.turn = None
         self.loadImages()
         self.status = None
         self.createGUI(self.root)
@@ -22,8 +22,32 @@ class MainFrame:
         self.board = ImageTk.PhotoImage(self.board)
         self.images = []
 
-        self.imgMessage1 = Image.open("Images/Messages/mensaje1.png")
-        self.imgMessage1 = ImageTk.PhotoImage(self.imgMessage1)
+        self.imgAgroB = Image.open("Images/Messages/agro-black.png")
+        self.imgAgroB = ImageTk.PhotoImage(self.imgAgroB)
+
+        self.imgAgroW = Image.open("Images/Messages/agro-white.png")
+        self.imgAgroW = ImageTk.PhotoImage(self.imgAgroW)
+
+        self.imgPasiveB = Image.open("Images/Messages/pasive-black.png")
+        self.imgPasiveB = ImageTk.PhotoImage(self.imgPasiveB)
+
+        self.imgPasiveW = Image.open("Images/Messages/pasive-white.png")
+        self.imgPasiveW = ImageTk.PhotoImage(self.imgPasiveW)
+
+        self.imgWinB = Image.open("Images/Messages/win-black.png")
+        self.imgWinB = ImageTk.PhotoImage(self.imgWinB)
+
+        self.imgWinW = Image.open("Images/Messages/win-white.png")
+        self.imgWinW = ImageTk.PhotoImage(self.imgWinW)
+
+        self.imgInvPlay = Image.open("Images/Messages/invalid-play.png")
+        self.imgInvPlay = ImageTk.PhotoImage(self.imgInvPlay)
+
+        self.imgNoHome = Image.open("Images/Messages/Nohome.png")
+        self.imgNoHome = ImageTk.PhotoImage(self.imgNoHome)
+
+        self.imgNoToken = Image.open("Images/Messages/no-token.png")
+        self.imgNoToken = ImageTk.PhotoImage(self.imgNoToken)
 
         for i in range(1, 65):
             if i<10: 
@@ -42,12 +66,12 @@ class MainFrame:
             img = ImageTk.PhotoImage(img)
             self.images.append(img)
 
-    		
+            
     def getImage(self, color, z, y, x):
-    	index = x + 8*y + z % 2 * 4 + 32 * math.floor(z / 2)
-    	if color == 2:
-    		index += 64  
-    	return self.images[index]
+        index = x + 8*y + z % 2 * 4 + 32 * math.floor(z / 2)
+        if color == 2:
+            index += 64  
+        return self.images[index]
 
     def createGUI(self, root):
         frmMainContainer = tk.Frame(root)             
@@ -60,32 +84,57 @@ class MainFrame:
         self.canvas = tk.Canvas(parent, width = canvasWidth, height = canvasHeight)
         self.canvasItems = [[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]],[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]],[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]],[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]]]
         self.canvas.create_image(480, 270, image=self.board)
-        self.paintMessage("Mensaje")
         self.canvas.pack()
         self.controller = MainViewController(self)
         self.canvas.bind('<Motion>', self.controller.mouse_move)
         self.canvas.bind('<Button>', self.controller.mouse_click)
 
     def paintPiece(self, value, table, row, column):
-    	self.canvasItems[table][row][column] = self.canvas.create_image(480, 270, image=self.getImage(value, table, row, column))
+        self.canvasItems[table][row][column] = self.canvas.create_image(480, 270, image=self.getImage(value, table, row, column))
 
     def removePiece(self, table, row, column):
-    	self.canvas.delete(self.canvasItems[table][row][column])
+        self.canvas.delete(self.canvasItems[table][row][column])
 
     def paintMessage(self, mensaje):
-        #validar que mensaje es
-        self.message = self.imgMessage1 #aqui se debe poner la imagen que corresponde al mensaje
-        x = threading.Thread(target=self.messageThread)
-        x.start()
+        if mensaje == "invalid":
+            self.message = self.imgInvPlay 
+            x = threading.Thread(target=self.messageThread)
+            x.start()
+        elif mensaje == "noToken":
+            self.message = self.imgNoToken
+            x = threading.Thread(target=self.messageThread)
+            x.start()
+        elif mensaje == "noHome":
+            self.message = self.imgNoHome
+            x = threading.Thread(target=self.messageThread)
+            x.start()
+        elif mensaje == "winB":
+            self.message = self.imgWinB
+            x = threading.Thread(target=self.messageThread)
+            x.start()
+        elif mensaje == "WinW":
+            self.message = self.imgWinW
+            x = threading.Thread(target=self.messageThread)
+            x.start()
+        elif mensaje == "agroB":
+            self.paintTurn(self.imgAgroB)
+        elif mensaje == "passiveB":
+            self.paintTurn(self.imgPasiveB)
+        elif mensaje == "agroW":
+            self.paintTurn(self.imgAgroW)
+        elif mensaje == "passiveW":
+            self.paintTurn(self.imgPasiveW)
+
+    def paintTurn(self, img):
+        if self.turn != None:
+            self.canvas.delete(self.turn)
+        self.turn = self.canvas.create_image(480, 270, image=img)
 
 
     def messageThread(self):
         img = self.canvas.create_image(480, 270, image=self.message)
         time.sleep(2)
         self.canvas.delete(img)
-
-
-
 
 frame = MainFrame()
 frame.root.mainloop()

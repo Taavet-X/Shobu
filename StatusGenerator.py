@@ -1,4 +1,3 @@
-
 class Generator:
 
 	def __init__(self):
@@ -24,15 +23,49 @@ class Generator:
 	def generateStatuses(self, initialStatus, player):
 		self.initialStatus = initialStatus
 		self.player = player
-		self.homeboardPieces = []
+		
 		#validar fin del juego
-		self.findHomeboardPieces()
-		return self.findPasiveMoves()
+		
+		self.passiveMoves, self.operations = self.findPassiveMoves(self.initialStatus)
+
+		statuses = []
+		for i in range(len(self.passiveMoves)):
+			status = self.passiveMoves[i]
+			board = self.operations[i][0]
+			rowOperation = self.operations[i][1]
+			columnOperation = self.operations[i][2]
+			posibleAggressiveMoves = self.findAggressiveMoves(status, board, rowOperation, columnOperation)
+			if len(posibleAggressiveMoves) != 0:
+				for posibleAggressiveMove in posibleAggressiveMoves:
+					statuses.append(posibleAggressiveMove)
+		return statuses
 		#self.findAggressiveMoves()
 
+
+	#se encarga de encontrar los posibles movimientos pasivos
+	def findPassiveMoves(self, status):
+		homeboardPieces = self.findHomeboardPieces(status)
+		statuses = []
+		operations = []
+		for homeboardPiece in homeboardPieces: #por cada pieza en el homeboard
+			board = homeboardPiece[0]
+			row = homeboardPiece[1]
+			column = homeboardPiece[2]
+			for move in self.moves: #por cada movimiento posible en el juego	
+				rowOperation = move[0] #representa el movimiento que se hara en las filas
+				columnOperation = move[1] #representa el moviento en las columnas
+				if ( (row + rowOperation) >= 0) and ( (row + rowOperation) <= 3) and ( (column + columnOperation) >= 0) and ( (column + columnOperation) <= 3):
+					if self.isValidPassiveMove(status, board, row, column, rowOperation, columnOperation):
+						statusCopy = self.copyStatus(status)					
+						statusCopy[board][ row ][ column ] = 0
+						statusCopy[board][ row + rowOperation ][ column + columnOperation ] = self.player
+						statuses.append(statusCopy)
+						operations.append((board,rowOperation,columnOperation))
+		return statuses, operations
+	
 	#Se encarga de buscar las fichas del homeboard del jugador en turno,
-	#para posteriormente hacer las posibles combinaciones sobre estas.
-	def findHomeboardPieces(self):
+	def findHomeboardPieces(self, status):
+		homeboardPieces = []
 		homeboards = []
 		if self.player == 1:
 			homeboards = [2, 3]
@@ -41,39 +74,11 @@ class Generator:
 		for board in homeboards:
 			for row in range(4):
 				for column in range(4):
-					if self.initialStatus[board][row][column] == self.player: 
-						self.homeboardPieces.append((board,row,column))
+					if status[board][row][column] == self.player: 
+						homeboardPieces.append((board,row,column))
+		return homeboardPieces
 
-	def findPasiveMoves(self):
-		statuses = []
-
-		for homeboardPiece in self.homeboardPieces:
-			board = homeboardPiece[0]
-			row = homeboardPiece[1]
-			column = homeboardPiece[2]
-
-			for move in self.moves:			
-				rowOperation = move[0] #representa el movimiento que se hara en las filas
-				columnOperation = move[1] #representa el moviento en las columnas
-				if ( (row + rowOperation) >= 0) and ( (row + rowOperation) <= 3) and ( (column + columnOperation) >= 0) and ( (column + columnOperation) <= 3): #arriba
-					if self.isValidPassiveMove(self.initialStatus, board, row, column, rowOperation, columnOperation):
-						statusCopy = self.copyStatus(self.initialStatus)					
-						statusCopy[board][ row ][ column ] = 0
-						statusCopy[board][ row + rowOperation ][ column + columnOperation ] = self.player
-						posibleAggressiveMoves = self.findAggressiveMoves(statusCopy, board, rowOperation, columnOperation)
-						if len(posibleAggressiveMoves) != 0:
-							for posibleAggressiveMove in posibleAggressiveMoves:
-								statuses.append(posibleAggressiveMove)
-
-		#for status in statuses:
-			#self.printStatus(status)
-		return statuses
-		
-		#self.printStatus(statuses[0])
-					#validar movimiento agresivos
-
-	#Valida si un movimiento pasivo es valido, tenindo en cuenta que este debe hacerse a una posicion no ocupada
-	#o en la cual, su trayecto no se vea obstaculizada por otra ficha
+	#Valida si un movimiento pasivo es valido
 	def isValidPassiveMove(self, status, board, row, column, rowOperation, columnOperation):
 		if abs(rowOperation) == 1 or abs(columnOperation) == 1:
 			return status[board][row + rowOperation][column + columnOperation] == 0
@@ -87,44 +92,33 @@ class Generator:
 				return False
 
 
-	def findAggressiveMoves(self, statusCopy, board, rowOperation, columnOperation):
+	def findAggressiveMoves(self, status, boardOperation, rowOperation, columnOperation):
 		posibleAggressiveMoves = [] #estados
+		aggressiveMovePieces = self.findAggressiveMovePieces(status, boardOperation)		
+		for aggressiveMovePiece in aggressiveMovePieces:
+			boardOperation = aggressiveMovePiece[0]
+			row = aggressiveMovePiece[1]
+			column = aggressiveMovePiece[2]
+			if ((row + rowOperation) >= 0) and ((row + rowOperation) <= 3) and ((column + columnOperation) >= 0) and ((column + columnOperation) <= 3):
+				newStatus = self.generateAggressiveMove(status, boardOperation, row, column, rowOperation, columnOperation)
+				if newStatus != None:
+					posibleAggressiveMoves.append(newStatus)					
+		return posibleAggressiveMoves
+
+	#busca las fichas con las cuales se puede hacer un movimiento agresivo
+	def findAggressiveMovePieces(self, status, boardOperation):
 		posibleboards = []
-		if ((board == 0) or (board == 2)):
+		if ((boardOperation == 0) or (boardOperation == 2)):
 			posibleboards = [1, 3]
 		else:
 			posibleboards = [0, 2]
-		self.aggressiveMovePieces = []
-		self.findAggressiveMovePieces(posibleboards)		
-		for aggressiveMovePiece in self.aggressiveMovePieces:
-			board = aggressiveMovePiece[0]
-			row = aggressiveMovePiece[1]
-			column = aggressiveMovePiece[2]
-
-			if ((row + rowOperation) >= 0) and ((row + rowOperation) <= 3) and ((column + columnOperation) >= 0) and ((column + columnOperation) <= 3):
-
-				newStatus = self.generateAggressiveMove(statusCopy, board, row, column, rowOperation, columnOperation)
-				if newStatus != None:
-					posibleAggressiveMoves.append(newStatus)
-				#validar/crear movimiento agresivos
-				'''
-				if self.initialStatus[board][row + rowOperation][column + columnOperation] == 0:
-					statusCopy2 = self.copyStatus(statusCopy)
-					statusCopy2[board][row][column] = 0
-					statusCopy2[board][row+rowOperation][column+columnOperation] = self.player
-					posibleAggressiveMoves.append(statusCopy2)'''
-
-					
-		return posibleAggressiveMoves
-
-	#busca las fichas con las cuales se puede hacer un movimiento agresivo para
-	#entonces realizar las posibles combinaciones
-	def findAggressiveMovePieces(self, posibleboards):
-		for board in posibleboards:
+		aggressiveMovePieces = []
+		for boardOperation in posibleboards:
 			for row in range(4):
 				for column in range(4):
-					if self.initialStatus[board][row][column] == self.player: 
-						self.aggressiveMovePieces.append((board,row,column))
+					if status[boardOperation][row][column] == self.player: 
+						aggressiveMovePieces.append((boardOperation,row,column))
+		return aggressiveMovePieces
 
 	def generateAggressiveMove(self, status, board, row, column, rowOperation, columnOperation):
 		status = self.copyStatus(status)
@@ -166,7 +160,10 @@ class Generator:
 					status[board][row][column] = 0
 					status[board][row+rowOperation][column+columnOperation] = self.player
 					return status #Se puede mover
+				elif status[board][previousRow][previousColumn] == self.player:
+					return None
 				else:
+					#print(row, column, rowOperation, columnOperation)
 					nextRow = row + rowOperation + int(rowOperation/(2))
 					nextColumn = column + columnOperation +int(columnOperation/(2))
 					if nextRow >= 0 and nextRow <= 3 and nextColumn >= 0 and nextColumn <= 3:
@@ -179,6 +176,7 @@ class Generator:
 						else:
 							return None
 					else: #saca la ficha
+						status[board][previousRow][previousColumn] = 0
 						status[board][row][column] = 0
 						status[board][row+rowOperation][column+columnOperation] = self.player
 						return status #Se puede mover
@@ -208,11 +206,9 @@ class Generator:
 			else: #si la casilla esta ocupada por ficha del mismo jugador
 				return None #movimiento no valido
 
+	#devuelve el jugador opuesto
 	def getOpossitePlayer(self, currentPlayer):
-		if currentPlayer == 1:
-			return 2
-		else:
-			return 1
+		return currentPlayer % 2 + 1
 
 	#creates a matrix copy for the status
 	def copyStatus(self, status):
@@ -227,6 +223,10 @@ class Generator:
 			newStaus.append(newboard)
 		return newStaus
 
+	def setPlayer(self, player):
+		self.player = player
+
+	#Imprime un estado
 	def printStatus(self, status):
 		print(str(status[0][0]) + "\t" + str(status[1][0]) )
 		print(str(status[0][1]) + "\t" + str(status[1][1]) )
@@ -241,5 +241,34 @@ class Generator:
 
 		#print(self.homeboardPieces)
 
+'''
+inicial =  [
+		[
+			[2,2,2,2],
+			[0,0,0,0],
+			[0,0,0,0],
+			[1,1,1,1],
+		], [
+			[2,2,2,2],
+			[0,0,0,0],
+			[0,0,0,0],
+			[1,1,1,1],
+		], [
+			[2,2,2,0],
+			[0,0,0,1],
+			[0,0,0,2],
+			[1,1,1,0],
+		], [
+			[2,2,2,2],
+			[0,0,0,0],
+			[0,0,0,0],
+			[1,1,1,1],
+		] ]
+generador = Generator()
+generador.setPlayer(1)
+#moves = generador.findPassiveMoves(inicial)[0]
+moves = generador.findAggressiveMoves(inicial, 3, 2, 0)
+for status in moves:
+	generador.printStatus(status)
 
-
+'''

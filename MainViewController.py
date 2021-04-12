@@ -1,9 +1,14 @@
 from Status import Status
 from StatusGenerator import Generator
+from Tree import Tree
+import threading
 
 class MainViewController:
 
 	def __init__(self, mainView):
+		self.gameOver = False
+		self.vsMachine = True
+		self.status = None
 		self.moves = [
 			[-1, 0], #arriba
 			[-1, 1], #arriba derecha
@@ -26,10 +31,11 @@ class MainViewController:
 		self.isPasive = True
 		self.player = 1
 		self.mainView = mainView
+		self.mainView.paintMessage("passiveW")
 		self.createBlocks()
 		self.oldBlockPosition = None		
 		self.newBlockPosition = (-1,-1,-1)		
-		self.setStatus(Status( [
+		self.setStatus([[
 			[2,2,2,2],
 			[0,0,0,0],
 			[0,0,0,0],
@@ -49,7 +55,7 @@ class MainViewController:
 			[0,0,0,0],
 			[0,0,0,0],
 			[1,1,1,1],
-		]))
+		]])
 
 	#Se encarga de crear las coordenadas para validaciones, cada uno de los bloques del juego
 	def createBlocks(self):
@@ -120,100 +126,133 @@ class MainViewController:
 			[684, 424, 732, 465, (3, 3, 3)], 
 		]
 
+	#Se encarga de validar la posicion del mouse, a medida que este se mueve.
 	def	mouse_move(self, event):		
 		for block in self.blocks:
 			if(event.x >= block[0] and event.x <= block[2] and event.y >= block[1] and event.y <= block[3]):
 				if block[4] != self.newBlockPosition:
 					self.newBlockPosition = block[4]
 					self.mainView.canvas['cursor']="hand2"
-					#if self.selected:
-					#	if self.newBlockPosition != (-1,-1,-1):
-							#self.mainView.paintPiece(self.selectedValue, self.newBlockPosition[0], self.newBlockPosition[1], self.newBlockPosition[2])
-					#self.mainView.paint()
 				return
 		self.newBlockPosition = (-1,-1,-1)
 		self.mainView.canvas['cursor']="arrow"		
 		return
 
 	def mouse_click(self, event):
-		if self.oldBlockPosition != None: #Validar posicion de llegada
-			if self.newBlockPosition == (-1,-1,-1):
-				self.oldBlockPosition == None							
-			else:
-				self.newPositionValue = self.status.getTableValue(self.newBlockPosition[0], self.newBlockPosition[1], self.newBlockPosition[2])
-				if self.oldBlockPosition == self.newBlockPosition:
-					print("canceled move") #aqui el jugador no pierde el turno
-					#self.isPasive = not self.isPasive
-					if self.newPositionValue != 0:
-						self.mainView.removePiece(self.newBlockPosition[0], self.newBlockPosition[1], self.newBlockPosition[2])
-					self.status.setTableValue(self.newBlockPosition[0], self.newBlockPosition[1], self.newBlockPosition[2], self.selectedValue)
-					self.mainView.paintPiece(self.selectedValue, self.newBlockPosition[0], self.newBlockPosition[1], self.newBlockPosition[2])
-					self.oldBlockPosition = None
-				#move
-				else:
-					board = self.oldBlockPosition[0]
-					row = self.oldBlockPosition[1]
-					column = self.oldBlockPosition[2]
-					rowOperation = self.newBlockPosition[1] - self.oldBlockPosition[1]
-					columnOperation = self.newBlockPosition[2] - self.oldBlockPosition[2]
-					onSameBoard = self.oldBlockPosition[0] == self.newBlockPosition[0]
-					#validacion
-					if self.isPasive:
-						if onSameBoard and self.isValidPassiveMove(self.status, board, row, column, rowOperation, columnOperation):
-
-							#Logica de movimiento en GUI
-							if self.newPositionValue != 0:
-								self.mainView.removePiece(self.newBlockPosition[0], self.newBlockPosition[1], self.newBlockPosition[2])
-							self.status.setTableValue(self.newBlockPosition[0], self.newBlockPosition[1], self.newBlockPosition[2], self.selectedValue)
-							self.mainView.paintPiece(self.selectedValue, self.newBlockPosition[0], self.newBlockPosition[1], self.newBlockPosition[2])
-							self.oldBlockPosition = None
-							self.isPasive = False													
-						else:
-							print("Movimiento no valido")
+		if not self.gameOver:
+			if self.oldBlockPosition != None: #Si una ficha habia sido seleccionada anteriormente
+				if self.newBlockPosition == (-1,-1,-1): #SI la nueva posicion es una posicion fuera de los tableros
+					self.oldBlockPosition == None #?? Deberia cancelarce el momvimiento							
+				else: #en caso de que la nueva posicion seleccionada es una posicion dentro de los tableros
+					self.newPositionValue = self.status[self.newBlockPosition[0]][self.newBlockPosition[1]][self.newBlockPosition[2]]
+					if self.oldBlockPosition == self.newBlockPosition:
+						print("canceled move") #aqui el jugador no pierde el turno
+						#self.isPasive = not self.isPasive
+						
+						if self.newPositionValue != 0:
+							self.mainView.removePiece(self.newBlockPosition[0], self.newBlockPosition[1], self.newBlockPosition[2])
+						self.status[self.newBlockPosition[0]][self.newBlockPosition[1]][self.newBlockPosition[2]] = self.selectedValue
+						self.mainView.paintPiece(self.selectedValue, self.newBlockPosition[0], self.newBlockPosition[1], self.newBlockPosition[2])
+						
+						#self.status[self.newBlockPosition[0]][self.newBlockPosition[1]][self.newBlockPosition[2]] = self.selectedValue
+						#self.setStatus(self.status)
+						self.oldBlockPosition = None
+					#move
 					else:
-						#agresivo
-						futureStatus = self.generador.copyStatus(self.status.getTables())
-						futureStatus[self.newBlockPosition[0]][self.newBlockPosition[1]][self.newBlockPosition[2]] = self.selectedValue
-
-						isAggressiveValid = False
-						for possibleStatus in self.possibleStatuses:
-							if possibleStatus == futureStatus:
-								isAggressiveValid = True								
-								break
-
-						if isAggressiveValid:
-							if self.newPositionValue != 0:
-								self.mainView.removePiece(self.newBlockPosition[0], self.newBlockPosition[1], self.newBlockPosition[2])
-							self.status.setTableValue(self.newBlockPosition[0], self.newBlockPosition[1], self.newBlockPosition[2], self.selectedValue)
-							self.mainView.paintPiece(self.selectedValue, self.newBlockPosition[0], self.newBlockPosition[1], self.newBlockPosition[2])
-							self.oldBlockPosition = None
-
-							self.player = self.player % 2 + 1
-							self.isPasive = True
-						else: 
-							print("No es un movimiento agresivo no valido")
-		else: 
-			if self.newBlockPosition != (-1,-1,-1):
-				self.selectedValue = self.status.getTableValue(self.newBlockPosition[0], self.newBlockPosition[1], self.newBlockPosition[2])
-				board = self.newBlockPosition[0]
-
-				if self.selectedValue != 0:
-					if self.selectedValue == self.player:
-
+						board = self.oldBlockPosition[0]
+						newBoard = self.newBlockPosition[0]
+						row = self.oldBlockPosition[1]
+						column = self.oldBlockPosition[2]
+						rowOperation = self.newBlockPosition[1] - self.oldBlockPosition[1]
+						columnOperation = self.newBlockPosition[2] - self.oldBlockPosition[2]
+						onSameBoard = self.oldBlockPosition[0] == self.newBlockPosition[0]
+						#validacion
 						if self.isPasive:
-							if (self.player == 1 and board != 2 and board != 3) or (self.player == 2 and board != 0 and board != 1):
-								print("El movimiento debe ser en el homeboard")
-							else:		
-								self.possibleStatuses = self.generador.generateStatuses(self.status.getTables(), self.player)
-								self.status.setTableValue(self.newBlockPosition[0], self.newBlockPosition[1], self.newBlockPosition[2], 0)
+							if onSameBoard and self.isValidPassiveMove(self.status, board, row, column, rowOperation, columnOperation):
+
+								#Logica de movimiento en GUI
+
+								if self.newPositionValue != 0:
+									self.mainView.removePiece(self.newBlockPosition[0], self.newBlockPosition[1], self.newBlockPosition[2])
+								self.status[self.newBlockPosition[0]][self.newBlockPosition[1]][self.newBlockPosition[2]] = self.selectedValue
+								self.mainView.paintPiece(self.selectedValue, self.newBlockPosition[0], self.newBlockPosition[1], self.newBlockPosition[2])
+
+								#self.status[self.newBlockPosition[0]][self.newBlockPosition[1]][self.newBlockPosition[2]] = self.selectedValue
+								#self.setStatus(self.status)
+
+								self.oldBlockPosition = None
+								self.isPasive = False
+								if self.player == 1:
+									self.mainView.paintMessage("agroW")
+								else:
+									self.mainView.paintMessage("agroB")
+
+								self.oldPassive = self.generador.copyStatus(self.status)#--------
+								self.generador.setPlayer(self.player)
+								self.possibleAggresiveMoves = self.generador.findAggressiveMoves(self.status, board, rowOperation, columnOperation)								
+							else:
+								self.mainView.paintMessage
+								self.mainView.paintMessage("invalid")
+								print("Movimiento no valido")
+						else: #Si el movimiento es de llegada y no es pasivo
+							self.generador.setPlayer(self.player)
+							aggresiveMove = self.generador.generateAggressiveMove(self.oldPassive, newBoard, row, column, rowOperation, columnOperation)
+							
+							isAggressiveValid = False
+							if aggresiveMove != None:
+								for possibleAggresiveMove in self.possibleAggresiveMoves:
+									if possibleAggresiveMove == aggresiveMove:
+										isAggressiveValid = True
+										break
+
+							if isAggressiveValid:
+								#self.generador.printStatus(aggresiveMove)
+								self.setStatus(aggresiveMove)
+								'''
+								if self.newPositionValue != 0:
+									self.mainView.removePiece(self.newBlockPosition[0], self.newBlockPosition[1], self.newBlockPosition[2])
+								self.status[self.newBlockPosition[0]][self.newBlockPosition[1]][self.newBlockPosition[2]] = self.selectedValue
+								self.mainView.paintPiece(self.selectedValue, self.newBlockPosition[0], self.newBlockPosition[1], self.newBlockPosition[2])
+								'''
+								self.oldBlockPosition = None
+								self.player = self.player % 2 + 1							
+								self.isPasive = True
+
+								if self.player == 1:
+									self.mainView.paintMessage("passiveW")
+								else:
+									self.mainView.paintMessage("passiveB")
+
+								#next player move
+								if self.vsMachine:
+									x = threading.Thread(target=self.machineMove)
+									x.start()
+							else:
+								self.mainView.paintMessage("invalid") 
+								print("No es un movimiento agresivo no valido")
+			else: 
+				if self.newBlockPosition != (-1,-1,-1):
+					self.selectedValue = self.status[self.newBlockPosition[0]][self.newBlockPosition[1]][self.newBlockPosition[2]]
+					board = self.newBlockPosition[0]
+					#validar que no se puedan hacer movimientos que no se encuentren en las posibilidades de los agresivos
+					if self.selectedValue != 0:
+						if self.selectedValue == self.player:
+
+							if self.isPasive:
+								if (self.player == 1 and board != 2 and board != 3) or (self.player == 2 and board != 0 and board != 1):
+									print("El movimiento debe ser en el homeboard")
+									self.mainView.paintMessage("noHome")
+								else:		
+									self.status[self.newBlockPosition[0]][self.newBlockPosition[1]][self.newBlockPosition[2]] = 0
+									self.mainView.removePiece(self.newBlockPosition[0], self.newBlockPosition[1], self.newBlockPosition[2])
+									self.oldBlockPosition = self.newBlockPosition
+							else:
+								self.status[self.newBlockPosition[0]][self.newBlockPosition[1]][self.newBlockPosition[2]] = 0
 								self.mainView.removePiece(self.newBlockPosition[0], self.newBlockPosition[1], self.newBlockPosition[2])
 								self.oldBlockPosition = self.newBlockPosition
 						else:
-							self.status.setTableValue(self.newBlockPosition[0], self.newBlockPosition[1], self.newBlockPosition[2], 0)
-							self.mainView.removePiece(self.newBlockPosition[0], self.newBlockPosition[1], self.newBlockPosition[2])
-							self.oldBlockPosition = self.newBlockPosition
-					else:
-						print("El turno no es el de la ficha seleccionada")
+							print("El turno no es el de la ficha seleccionada")
+							self.mainView.paintMessage("noToken")
 				
 	def isValidPassiveMove(self, status, board, row, column, rowOperation, columnOperation):
 		isValidResult = False
@@ -224,23 +263,40 @@ class MainViewController:
 		if not isValidResult:
 			return False
 		elif abs(rowOperation) == 1 or abs(columnOperation) == 1:
-			return status.getTables()[board][row + rowOperation][column + columnOperation] == 0
+			return status[board][row + rowOperation][column + columnOperation] == 0
 		else:
 			rowMultiplier = int(rowOperation / -2)
 			columnMultiplier = int(columnOperation / -2)
-			if status.getTables()[board][row + (rowOperation + 1 * rowMultiplier)][column + (columnOperation + 1*columnMultiplier)] == 0:
-				if status.getTables()[board][row + (rowOperation + 0 * rowMultiplier)][column + (columnOperation + 0*columnMultiplier)] == 0:
+			if status[board][row + (rowOperation + 1 * rowMultiplier)][column + (columnOperation + 1*columnMultiplier)] == 0:
+				if status[board][row + (rowOperation + 0 * rowMultiplier)][column + (columnOperation + 0*columnMultiplier)] == 0:
 					return True
 			else:
 				return False
 
+	def machineMove(self):
+		print("Turno maquina")
+		tree = Tree(self.status, self.player)
+		choice = tree.choice
+		if choice == None:
+			gameOver = True
+		else:
+			self.setStatus(choice.getKey())
+			self.player = self.player % 2 + 1
+			self.mainView.paintMessage("passiveW")
 
 	def setStatus(self, status):
-		print("status set")
-		self.status = status
 		for tableIndex in range(4):
 			for rowIndex in range(4):
 				for columnIndex in range(4):
-					value = self.status.getTableValue(tableIndex, rowIndex, columnIndex)
-					if value != 0:
-						self.mainView.paintPiece(value, tableIndex, rowIndex, columnIndex)
+					value = status[tableIndex][rowIndex][columnIndex]
+					if self.status == None:				
+						if value != 0:
+							self.mainView.paintPiece(value, tableIndex, rowIndex, columnIndex)
+					else:
+						if self.status[tableIndex][rowIndex][columnIndex] != status[tableIndex][rowIndex][columnIndex]:
+							self.mainView.removePiece(tableIndex, rowIndex, columnIndex)
+							if value != 0:
+								self.mainView.paintPiece(value, tableIndex, rowIndex, columnIndex)
+		self.status = status
+
+
