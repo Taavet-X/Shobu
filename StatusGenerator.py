@@ -20,14 +20,12 @@ class Generator:
 			[-2,-2], #2 arriba izquierda
 		]
 
+	#genera los posibles estados a los cuales puede llegarse
+	#a partir de uno dado
 	def generateStatuses(self, initialStatus, player):
 		self.initialStatus = initialStatus
 		self.player = player
-		
-		#validar fin del juego
-		
 		self.passiveMoves, self.operations = self.findPassiveMoves(self.initialStatus)
-
 		statuses = []
 		for i in range(len(self.passiveMoves)):
 			status = self.passiveMoves[i]
@@ -39,8 +37,6 @@ class Generator:
 				for posibleAggressiveMove in posibleAggressiveMoves:
 					statuses.append(posibleAggressiveMove)
 		return statuses
-		#self.findAggressiveMoves()
-
 
 	#se encarga de encontrar los posibles movimientos pasivos
 	def findPassiveMoves(self, status):
@@ -91,7 +87,8 @@ class Generator:
 			else:
 				return False
 
-
+	#Encuentra los posibles movimientos agresivos, retorna la lista de estos.
+	#recibe el estado que supone es luego del movimiento pasivo.
 	def findAggressiveMoves(self, status, boardOperation, rowOperation, columnOperation):
 		posibleAggressiveMoves = [] #estados
 		aggressiveMovePieces = self.findAggressiveMovePieces(status, boardOperation)		
@@ -120,6 +117,9 @@ class Generator:
 						aggressiveMovePieces.append((boardOperation,row,column))
 		return aggressiveMovePieces
 
+	#crea el movimiento agresivo posible a partir de operaciones dadas
+	#si las operaciones dadas no tienen un movimiento agresivo posible
+	#entonces retorna 'None'
 	def generateAggressiveMove(self, status, board, row, column, rowOperation, columnOperation):
 		status = self.copyStatus(status)
 		if abs(rowOperation) == 1 or abs(columnOperation) == 1: #cuando la casilla se mueve 1 bloque unicamente
@@ -210,7 +210,7 @@ class Generator:
 	def getOpossitePlayer(self, currentPlayer):
 		return currentPlayer % 2 + 1
 
-	#creates a matrix copy for the status
+	#Crea la copia de una matriz
 	def copyStatus(self, status):
 		newStaus = []
 		for board in range(4):
@@ -223,10 +223,12 @@ class Generator:
 			newStaus.append(newboard)
 		return newStaus
 
+	#se encarga de definir el jugador sobre el 
+	#cual se generan los posibles estados en un nodo
 	def setPlayer(self, player):
 		self.player = player
 
-	#Imprime un estado
+	#Imprime un estado en la consola
 	def printStatus(self, status):
 		print(str(status[0][0]) + "\t" + str(status[1][0]) )
 		print(str(status[0][1]) + "\t" + str(status[1][1]) )
@@ -238,8 +240,6 @@ class Generator:
 		print(str(status[2][2]) + "\t" + str(status[3][2]) )
 		print(str(status[2][3]) + "\t" + str(status[3][3]) )
 		print("____________________________\n" )
-
-		#print(self.homeboardPieces)
 
 '''
 inicial =  [
@@ -270,5 +270,4 @@ generador.setPlayer(1)
 moves = generador.findAggressiveMoves(inicial, 3, 2, 0)
 for status in moves:
 	generador.printStatus(status)
-
 '''

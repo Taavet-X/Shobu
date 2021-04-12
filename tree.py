@@ -4,28 +4,22 @@ from Node import Node
 class Tree:
 	
 	def __init__(self, root, player):
-		#validar despues de la maquina
 		self.root = Node(root)
-		self.choice = None		
-		if self.isGoal(self.root):
-			print("Gano ", player % 2 + 1)
+		self.choice = None
+		self.winner = None
+		if self.isGoal(self.root):			
+			self.winner = 1
 		else:
-
 			self.currentDeep = 0
 			self.deep = 2
 			self.player = player
 			self.generador = Generator()
-			#self.generador.printStatus(root)
 			self.old = [self.root]
 			self.generateTree()
-			value = self.recorrer_arbol(self.root)
+			value = self.alphaBeta(self.root)
 			self.choice = self.getChoice(self.root)
-
-			'''
-			self.choice = self.minmax(self.root)[1]
-			while self.choice.getParent().getParent() != None:
-				self.choice = self.choice.getParent()
-			'''
+			if self.isGoal(self.choice):
+				self.winner = 2
 
 	def generateTree(self):
 		print(self.currentDeep, len(self.old))
@@ -43,7 +37,6 @@ class Tree:
 			self.generateTree()
 
 	def expand(self, node):
-		#Pregunta si es meta.
 		childsAsNodes = []
 		if self.isGoal(node):
 			node.setUtility(self.heuristica(self.root.getKey(), node.getKey()))			
@@ -73,53 +66,6 @@ class Tree:
 			if not contains2:
 				return True
 
-	def minmax(self, node):
-		childs = node.getChilds()
-		if childs == None:
-			return node.getUtility(), node
-		else:
-			if(node.getType() == "max"):
-				maxValue = -9223372036854775807
-				selectedChild = "test"
-				for child in childs:
-					value, selectedChild = self.minmax(child)
-					if value > maxValue:
-						maxValue = value
-						selectedChild = child
-				return maxValue, selectedChild
-			else:
-				minValue = 9223372036854775807
-				selectedChild = "test"
-				for child in childs:
-					value, selectedChild = self.minmax(child)
-					if value < minValue:
-						minValue = value
-						selectedChild = child
-				return minValue, selectedChild
-
-	def contador(self, boards):
-	    heuristica = 0
-	    player1 = 0
-	    player2 = 0
-	    for board in boards:
-	        for row in board:
-	            for value in row:
-	                if value == 1:
-	                    player1 += 1
-	                elif value == 2:
-	                    player2 +=1
-
-	    return player1, player2
-
-	def heuristica(self, inicial, final):
-	    p1i, p2i = self.contador(inicial)
-	    p1c, p2c = self.contador(final)
-	    heuristica = (p1i - p1c) - 2*(p2i - p2c)
-	    return heuristica
-
-	#def getChoice(self):
-	#	return self.choice
-
 	def getBrother(self, node):
 		parent = node.getParent()
 		if parent != None:
@@ -141,18 +87,11 @@ class Tree:
 				if node == childs[i]:
 					auxValue = i+1
 					break
-			#print("len childs = ",len(childs), " ||| position = ",auxValue)
-			
 			for i in range (len(childs)):
-				#print(childs[i].getKey()," len = ",len(childs))
 				if i>=auxValue:
 					childs.remove(childs[auxValue])
 
-	#	print(node.getKey())
-	#	parentChildList = node.getParent().getChilds()
-	#	parentChildList.remove(node)
-
-	def recorrer_arbol(self, node):
+	def alphaBeta(self, node):
 		childs = node.getChilds()
 		if childs == None:
 			return node.getUtility()
@@ -160,7 +99,7 @@ class Tree:
 			if(node.getType() == "max"):
 				maxValue = -9223372036854775807
 				for child in childs:
-					value = self.recorrer_arbol(child)
+					value = self.alphaBeta(child)
 					brother = self.getBrother(node)
 					if value != None:
 						if brother != None:
@@ -182,7 +121,7 @@ class Tree:
 			else:
 				minValue = 9223372036854775807
 				for child in childs:
-					value = self.recorrer_arbol(child)
+					value = self.alphaBeta(child)
 					brother = self.getBrother(node)
 					if value != None:
 						if brother != None:
@@ -204,6 +143,25 @@ class Tree:
 		for child in root.getChilds():
 			if child.getUtility() == root.getUtility():
 				return child
+
+	def contador(self, boards):
+	    heuristica = 0
+	    player1 = 0
+	    player2 = 0
+	    for board in boards:
+	        for row in board:
+	            for value in row:
+	                if value == 1:
+	                    player1 += 1
+	                elif value == 2:
+	                    player2 +=1
+	    return player1, player2
+
+	def heuristica(self, inicial, final):
+	    p1i, p2i = self.contador(inicial)
+	    p1c, p2c = self.contador(final)
+	    heuristica = (p1i - p1c) - 2*(p2i - p2c)
+	    return heuristica
 '''
 inicial =  [
 		[

@@ -12,6 +12,7 @@ class MainFrame:
         self.root = tk.Tk()
         self.root.title("Shobu")
         self.turn = None
+        self.textImage = None
         self.loadImages()
         self.status = None
         self.createGUI(self.root)
@@ -108,14 +109,10 @@ class MainFrame:
             self.message = self.imgNoHome
             x = threading.Thread(target=self.messageThread)
             x.start()
-        elif mensaje == "winB":
-            self.message = self.imgWinB
-            x = threading.Thread(target=self.messageThread)
-            x.start()
+        elif mensaje == "WinB":
+            self.paintWin(self.imgWinB)
         elif mensaje == "WinW":
-            self.message = self.imgWinW
-            x = threading.Thread(target=self.messageThread)
-            x.start()
+            self.paintWin(self.imgWinW)
         elif mensaje == "agroB":
             self.paintTurn(self.imgAgroB)
         elif mensaje == "passiveB":
@@ -130,11 +127,30 @@ class MainFrame:
             self.canvas.delete(self.turn)
         self.turn = self.canvas.create_image(480, 270, image=img)
 
+    def paintWin(self, img):
+        self.canvas.create_image(480, 270, image=img)
 
     def messageThread(self):
         img = self.canvas.create_image(480, 270, image=self.message)
         time.sleep(2)
         self.canvas.delete(img)
+
+    def paintText(self, text):
+        self.text = text
+        x = threading.Thread(target=self.textThread)
+        x.start()
+        
+
+    def textThread(self):
+        if self.textImage != None:
+            self.canvas.delete(self.textImage)
+            self.textImage = None
+        self.textImage = self.canvas.create_text(480,500, fill = "white", font="Times 20 italic bold", text = self.text)
+        time.sleep(3)
+        if self.textImage != None:
+            self.canvas.delete(self.textImage)
+            self.textImage = None
+
 
 frame = MainFrame()
 frame.root.mainloop()

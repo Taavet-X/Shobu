@@ -1,4 +1,3 @@
-from Status import Status
 from StatusGenerator import Generator
 from Tree import Tree
 import threading
@@ -6,36 +5,18 @@ import threading
 class MainViewController:
 
 	def __init__(self, mainView):
-		self.gameOver = False
-		self.vsMachine = True
-		self.status = None
-		self.moves = [
-			[-1, 0], #arriba
-			[-1, 1], #arriba derecha
-			[ 0, 1], #derecha
-			[ 1, 1], #abajo derecha
-			[ 1, 0], #abajo
-			[ 1,-1], #abajo izquierda
-			[ 0,-1], #izquierda
-			[-1,-1], #arriba izquierda
-			[-2, 0], #2 arriba
-			[-2, 2], #2 arriba derecha
-			[ 0, 2], #2 derecha
-			[ 2, 2], #2 abajo derecha
-			[ 2, 0], #2 abajo
-			[ 2,-2], #2 abajo izquierda
-			[ 0,-2], #2 izquierda
-			[-2,-2], #2 arriba izquierda
-		]
-		self.generador = Generator()
-		self.isPasive = True
-		self.player = 1
-		self.mainView = mainView
-		self.mainView.paintMessage("passiveW")
-		self.createBlocks()
-		self.oldBlockPosition = None		
-		self.newBlockPosition = (-1,-1,-1)		
-		self.setStatus([[
+		self.gameOver = False #Permite que los jugadores puedan hacer jugadas
+		self.vsMachine = True #Determina si el juego es contra la maquina u otro jugador
+		self.status = None #El estado del juego, es la matriz con los datos de los tableros
+		self.generador = Generator() #Es el objeto que se encarga de generar los estados
+		self.isPasive = True #Indica que tipo de jugada es, si es pasiva o agresiva
+		self.player = 1	#Indica el turno del jugador.
+		self.mainView = mainView #La instancia al objeto mainView.
+		self.mainView.paintMessage("passiveW") #Pinta la imagen correspondiente al turno del jugador
+		self.createBlocks() #crea los bloques sobre los cuales se valida la posicion de mouse
+		self.oldBlockPosition = None #corresponde a un bloque seleccionado con el click (al agarrar una ficha)
+		self.newBlockPosition = (-1,-1,-1) #corresponde al nuevo bloque (al poner una ficha)
+		self.setStatus([[ #el estado inicial de juego.
 			[2,2,2,2],
 			[0,0,0,0],
 			[0,0,0,0],
@@ -128,15 +109,14 @@ class MainViewController:
 
 	#Se encarga de validar la posicion del mouse, a medida que este se mueve.
 	def	mouse_move(self, event):		
-		for block in self.blocks:
-			if(event.x >= block[0] and event.x <= block[2] and event.y >= block[1] and event.y <= block[3]):
-				if block[4] != self.newBlockPosition:
-					self.newBlockPosition = block[4]
-					self.mainView.canvas['cursor']="hand2"
-				return
-		self.newBlockPosition = (-1,-1,-1)
-		self.mainView.canvas['cursor']="arrow"		
-		return
+		for block in self.blocks: #recorre los bloques definidos como posiciones posibles de las fichas
+			if(event.x >= block[0] and event.x <= block[2] and event.y >= block[1] and event.y <= block[3]): #en caso de el mouse este sobre una posicion
+				if block[4] != self.newBlockPosition: # si la posicion de ese bloque es diferente al bloque en el que estaba anteriormente
+					self.newBlockPosition = block[4] #hace que el bloque sobre el que se esta sea igual a la posicion
+					self.mainView.canvas['cursor']="hand2" # pone el cursor con forma de mano
+				return #termina el evento
+		self.newBlockPosition = (-1,-1,-1) #al no encontrar que el mouse este en una posicion valida, lo define como (-1,-1,-1)
+		self.mainView.canvas['cursor']="arrow" #el mouse se convierte en su forma tradicional
 
 	def mouse_click(self, event):
 		if not self.gameOver:
@@ -170,30 +150,40 @@ class MainViewController:
 						if self.isPasive:
 							if onSameBoard and self.isValidPassiveMove(self.status, board, row, column, rowOperation, columnOperation):
 
-								#Logica de movimiento en GUI
-
-								if self.newPositionValue != 0:
-									self.mainView.removePiece(self.newBlockPosition[0], self.newBlockPosition[1], self.newBlockPosition[2])
-								self.status[self.newBlockPosition[0]][self.newBlockPosition[1]][self.newBlockPosition[2]] = self.selectedValue
-								self.mainView.paintPiece(self.selectedValue, self.newBlockPosition[0], self.newBlockPosition[1], self.newBlockPosition[2])
-
-								#self.status[self.newBlockPosition[0]][self.newBlockPosition[1]][self.newBlockPosition[2]] = self.selectedValue
-								#self.setStatus(self.status)
-
-								self.oldBlockPosition = None
-								self.isPasive = False
-								if self.player == 1:
-									self.mainView.paintMessage("agroW")
-								else:
-									self.mainView.paintMessage("agroB")
-
-								self.oldPassive = self.generador.copyStatus(self.status)#--------
+								#validacion que la jugada pasiva tenga una posible jugada agresiva
+								futureStatus = self.generador.copyStatus(self.status)
+								futureStatus[self.newBlockPosition[0]][self.newBlockPosition[1]][self.newBlockPosition[2]] = self.selectedValue
 								self.generador.setPlayer(self.player)
-								self.possibleAggresiveMoves = self.generador.findAggressiveMoves(self.status, board, rowOperation, columnOperation)								
-							else:
-								self.mainView.paintMessage
+								posibleAggressiveMoves = self.generador.findAggressiveMoves(futureStatus, board, rowOperation, columnOperation)
+								if len(posibleAggressiveMoves) != 0:
+									#Logica de movimiento en GUI
+
+									if self.newPositionValue != 0:
+										self.mainView.removePiece(self.newBlockPosition[0], self.newBlockPosition[1], self.newBlockPosition[2])
+									self.status[self.newBlockPosition[0]][self.newBlockPosition[1]][self.newBlockPosition[2]] = self.selectedValue
+									self.mainView.paintPiece(self.selectedValue, self.newBlockPosition[0], self.newBlockPosition[1], self.newBlockPosition[2])
+
+									#self.status[self.newBlockPosition[0]][self.newBlockPosition[1]][self.newBlockPosition[2]] = self.selectedValue
+									#self.setStatus(self.status)
+
+									self.oldBlockPosition = None
+									self.isPasive = False
+									if self.player == 1:
+										self.mainView.paintMessage("agroW")
+									else:
+										self.mainView.paintMessage("agroB")
+
+									self.oldPassive = self.generador.copyStatus(self.status)#--------
+									self.generador.setPlayer(self.player)
+									self.possibleAggresiveMoves = self.generador.findAggressiveMoves(self.status, board, rowOperation, columnOperation)								
+								else:
+									self.mainView.paintMessage("invalid")
+									self.mainView.paintText("Movimiento no valido, no existe una jugada agresiva para dicho movimiento")
+									print("Movimiento no valido, no existe una jugada agresiva para dicho movimiento")
+							else:								
 								self.mainView.paintMessage("invalid")
 								print("Movimiento no valido")
+								self.mainView.paintText("Movimiento no valido")
 						else: #Si el movimiento es de llegada y no es pasivo
 							self.generador.setPlayer(self.player)
 							aggresiveMove = self.generador.generateAggressiveMove(self.oldPassive, newBoard, row, column, rowOperation, columnOperation)
@@ -206,14 +196,9 @@ class MainViewController:
 										break
 
 							if isAggressiveValid:
-								#self.generador.printStatus(aggresiveMove)
+
 								self.setStatus(aggresiveMove)
-								'''
-								if self.newPositionValue != 0:
-									self.mainView.removePiece(self.newBlockPosition[0], self.newBlockPosition[1], self.newBlockPosition[2])
-								self.status[self.newBlockPosition[0]][self.newBlockPosition[1]][self.newBlockPosition[2]] = self.selectedValue
-								self.mainView.paintPiece(self.selectedValue, self.newBlockPosition[0], self.newBlockPosition[1], self.newBlockPosition[2])
-								'''
+
 								self.oldBlockPosition = None
 								self.player = self.player % 2 + 1							
 								self.isPasive = True
@@ -228,8 +213,9 @@ class MainViewController:
 									x = threading.Thread(target=self.machineMove)
 									x.start()
 							else:
-								self.mainView.paintMessage("invalid") 
-								print("No es un movimiento agresivo no valido")
+								self.mainView.paintMessage("invalid")
+								self.mainView.paintText("No es un movimiento agresivo valido") 
+								print("No es un movimiento agresivo valido")
 			else: 
 				if self.newBlockPosition != (-1,-1,-1):
 					self.selectedValue = self.status[self.newBlockPosition[0]][self.newBlockPosition[1]][self.newBlockPosition[2]]
@@ -241,8 +227,9 @@ class MainViewController:
 							if self.isPasive:
 								if (self.player == 1 and board != 2 and board != 3) or (self.player == 2 and board != 0 and board != 1):
 									print("El movimiento debe ser en el homeboard")
+									self.mainView.paintText("El movimiento debe ser en el homeboard") 
 									self.mainView.paintMessage("noHome")
-								else:		
+								else:
 									self.status[self.newBlockPosition[0]][self.newBlockPosition[1]][self.newBlockPosition[2]] = 0
 									self.mainView.removePiece(self.newBlockPosition[0], self.newBlockPosition[1], self.newBlockPosition[2])
 									self.oldBlockPosition = self.newBlockPosition
@@ -252,11 +239,12 @@ class MainViewController:
 								self.oldBlockPosition = self.newBlockPosition
 						else:
 							print("El turno no es el de la ficha seleccionada")
+							self.mainView.paintText("El turno no es el de la ficha seleccionada") 
 							self.mainView.paintMessage("noToken")
 				
 	def isValidPassiveMove(self, status, board, row, column, rowOperation, columnOperation):
 		isValidResult = False
-		for move in self.moves:
+		for move in self.generador.moves:
 			if move == [rowOperation, columnOperation]:				
 				isValidResult = True
 				break
@@ -277,12 +265,23 @@ class MainViewController:
 		print("Turno maquina")
 		tree = Tree(self.status, self.player)
 		choice = tree.choice
-		if choice == None:
-			gameOver = True
-		else:
+		if choice != None:
 			self.setStatus(choice.getKey())
 			self.player = self.player % 2 + 1
 			self.mainView.paintMessage("passiveW")
+		winner = tree.winner
+		if winner == 1:
+			self.mainView.paintMessage("WinW")
+			print("El jugador",winner,"ha ganado.")
+			self.mainView.paintText("El jugador " +str(winner)+" ha ganado.") 
+			self.gameOver = True
+		elif winner == 2:
+			self.mainView.paintMessage("WinB")
+			print("El jugador",winner,"ha ganado.")
+			self.mainView.paintText("El jugador " +str(winner)+" ha ganado.") 
+			self.gameOver = True
+
+
 
 	def setStatus(self, status):
 		for tableIndex in range(4):
